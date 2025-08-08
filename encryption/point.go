@@ -93,6 +93,19 @@ func (p *Point) Equal(other *Point) bool {
 	return p.a.Equal(other.a) && p.x.Equal(other.x) && p.b.Equal(other.b) && p.y.Equal(other.y)
 }
 
+func (p *Point) GetCoordinates() (*big.Int, *big.Int) {
+	return p.x.num, p.y.num
+}
+
+func (p *Point) Copy() *Point {
+	return &Point{
+		a: p.a.Copy(),
+		b: p.b.Copy(),
+		x: p.x.Copy(),
+		y: p.y.Copy(),
+	}
+}
+
 func (p *Point) Add(other *Point) (*Point, error) {
 	if !p.a.Equal(other.a) || !p.b.Equal(other.b) {
 		return nil, InvalidPoint
@@ -133,7 +146,6 @@ func (p *Point) Add(other *Point) (*Point, error) {
 		s = OpOnBig(num, den, nil, DIV)
 	}
 
-	fmt.Println("Slope: ", s)
 	// x_3 = s^2 - x_1 - x_2
 	// y_3 = s*(x_1 - x_3) - y_1
 	s2 := OpOnBig(s, nil, big.NewInt(int64(2)), EXP)
@@ -141,4 +153,30 @@ func (p *Point) Add(other *Point) (*Point, error) {
 	y_3 := OpOnBig(OpOnBig(OpOnBig(p.x, x_3, nil, SUB), s, nil, MUL), p.y, nil, SUB)
 
 	return &Point{x: x_3, y: y_3, a: p.a, b: p.b}, nil
+}
+
+func (p *Point) ScalarMul(scalar *big.Int) (*Point, error) {
+	if scalar == nil {
+		return nil, fmt.Errorf("insufficient arguments")
+	}
+
+	result := &Point{a: p.a, b: p.b, x: nil, y: nil}
+	current := p.Copy()
+
+	coef := new(big.Int).Set(scalar)
+
+	for coef.Sign() > 0 {
+		if coef.Bit(0) == 1 {
+			if result.x == nil {
+				result = current.Copy()
+			} else {
+				result, _ = result.Add(current)
+			}
+		}
+
+		current, _ = current.Add(current)
+		coef.Rsh(coef, 1)
+	}
+
+	return result, nil
 }

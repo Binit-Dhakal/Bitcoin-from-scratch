@@ -25,6 +25,13 @@ func NewFieldElement(num *big.Int, prime *big.Int) *FieldElement {
 	}
 }
 
+func (f *FieldElement) Copy() *FieldElement {
+	return &FieldElement{
+		num:   new(big.Int).Set(f.num),
+		prime: new(big.Int).Set(f.prime),
+	}
+}
+
 func (f *FieldElement) Equal(other *FieldElement) bool {
 	if other == nil {
 		return false
