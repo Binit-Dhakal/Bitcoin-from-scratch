@@ -1,6 +1,7 @@
 package encryption
 
 import (
+	"fmt"
 	"math/big"
 	"testing"
 
@@ -11,21 +12,22 @@ import (
 func TestPointADD(t *testing.T) {
 	testCases := []struct {
 		name       string
+		order      int
 		parameterA [4]int //a,b,x,y // 0 in x, y mean nil value
 		parameterB [4]int
 		output     [4]int
 	}{
-		{"Identity Case: A+I", [4]int{5, 7, -1, -1}, [4]int{5, 7, 0, 0}, [4]int{5, 7, -1, -1}},
-		{"Identity Case: I+A", [4]int{5, 7, 0, 0}, [4]int{5, 7, -1, -1}, [4]int{5, 7, -1, -1}},
-		{"Vertical Line: slope inf", [4]int{5, 7, -1, -1}, [4]int{5, 7, -1, 1}, [4]int{5, 7, 0, 0}},
-		{"different point: x1 != x2", [4]int{5, 7, 2, 5}, [4]int{5, 7, -1, -1}, [4]int{5, 7, 3, -7}},
-		{"same point: x1==x2", [4]int{5, 7, -1, -1}, [4]int{5, 7, -1, -1}, [4]int{5, 7, 18, 77}},
+		{"Identity Case: A+I", 223, [4]int{5, 7, -1, -1}, [4]int{5, 7, 0, 0}, [4]int{5, 7, -1, -1}},
+		{"Identity Case: I+A", 223, [4]int{5, 7, 0, 0}, [4]int{5, 7, -1, -1}, [4]int{5, 7, -1, -1}},
+		{"Vertical Line: slope inf", 223, [4]int{5, 7, -1, -1}, [4]int{5, 7, -1, 1}, [4]int{5, 7, 0, 0}},
+		{"different point: x1 != x2", 223, [4]int{5, 7, 2, 5}, [4]int{5, 7, -1, -1}, [4]int{5, 7, 3, 216}},
+		{"same point: x1==x2", 223, [4]int{5, 7, -1, -1}, [4]int{5, 7, -1, -1}, [4]int{5, 7, 18, 77}},
 	}
 
 	for _, test := range testCases {
 		t.Run(test.name, func(t *testing.T) {
-			p1 := BuildPointStructFromArray(test.parameterA)
-			p2 := BuildPointStructFromArray(test.parameterB)
+			p1 := BuildPointStructFromArray(test.order, test.parameterA)
+			p2 := BuildPointStructFromArray(test.order, test.parameterB)
 
 			res, err := p1.Add(p2)
 
@@ -38,19 +40,23 @@ func TestPointADD(t *testing.T) {
 	}
 }
 
-func convertToBigInt(a int) *big.Int {
-	return big.NewInt(int64(a))
+func convertToBigInt(order int, a int) *FieldElement {
+	o := big.NewInt(int64(order))
+
+	b := big.NewInt(int64(a))
+	return NewFieldElement(b, o)
 }
 
-func BuildPointStructFromArray(parameters [4]int) *Point {
-	p := [4]*big.Int{}
+func BuildPointStructFromArray(order int, parameters [4]int) *Point {
+	p := [4]*FieldElement{}
 	for i, parameter := range parameters {
 		if parameter == 0 {
 			p[i] = nil
 		} else {
-			p[i] = convertToBigInt(parameter)
+			p[i] = convertToBigInt(order, parameter)
 		}
 	}
+	fmt.Printf("%+v\n", p)
 	point, err := NewPoint(p[0], p[1], p[2], p[3])
 	if err != nil {
 		// panic is ok here as this function is just used for testing
@@ -60,12 +66,12 @@ func BuildPointStructFromArray(parameters [4]int) *Point {
 	return point
 }
 
-func convertBigIntToInt(a *big.Int) int {
+func convertBigIntToInt(a *FieldElement) int {
 	if a == nil {
 		return 0
 	}
 
-	return int(a.Int64())
+	return int(a.num.Int64())
 }
 
 func BuildArrayFromPointStruct(point *Point) [4]int {

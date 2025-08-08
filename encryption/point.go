@@ -2,6 +2,7 @@ package encryption
 
 import (
 	"errors"
+	"fmt"
 	"math/big"
 )
 
@@ -19,31 +20,46 @@ var InvalidPoint = errors.New("Point is not in the curve")
 
 // curve of the form {y^2 = x^3+ax+b}
 type Point struct {
-	a *big.Int
-	b *big.Int
-	x *big.Int
-	y *big.Int
+	a *FieldElement
+	b *FieldElement
+	x *FieldElement
+	y *FieldElement
 }
 
-func OpOnBig(x *big.Int, y *big.Int, optype OP_TYPE) *big.Int {
-	var op big.Int
+func OpOnBig(x *FieldElement, y *FieldElement, scalar *big.Int, optype OP_TYPE) *FieldElement {
 	switch optype {
 	case ADD:
-		return op.Add(x, y)
+		res, _ := x.Add(y)
+		return res
 	case SUB:
-		return op.Sub(x, y)
+		res, _ := x.Sub(y)
+		return res
 	case MUL:
-		return op.Mul(x, y)
+		if y != nil {
+			res, _ := x.Mul(y)
+			return res
+		}
+
+		if scalar != nil {
+			res, _ := x.ScalarMul(scalar)
+			return res
+		}
+		panic("wrong Multiplication operation parameters")
 	case DIV:
-		return op.Div(x, y)
+		res, _ := x.Division(y)
+		return res
 	case EXP:
-		return op.Exp(x, y, nil)
+		if scalar == nil {
+			panic("Scalar cannot be nil for EXP op")
+		}
+		res, _ := x.Exponent(scalar)
+		return res
 	}
 
 	panic("wrong operation type")
 }
 
-func NewPoint(a *big.Int, b *big.Int, x *big.Int, y *big.Int) (*Point, error) {
+func NewPoint(a *FieldElement, b *FieldElement, x *FieldElement, y *FieldElement) (*Point, error) {
 	p := Point{
 		a: a,
 		b: b,
@@ -57,25 +73,28 @@ func NewPoint(a *big.Int, b *big.Int, x *big.Int, y *big.Int) (*Point, error) {
 	}
 
 	if !isValid(a, b, x, y) {
+		fmt.Println("error")
 		return nil, InvalidPoint
 	}
 
 	return &p, nil
 }
 
-func isValid(a *big.Int, b *big.Int, x *big.Int, y *big.Int) bool {
+func isValid(a *FieldElement, b *FieldElement, x *FieldElement, y *FieldElement) bool {
 	// y^2 = x^3 + a*x + b
-	lhs := OpOnBig(y, big.NewInt(int64(2)), EXP)
-	rhs := OpOnBig(OpOnBig(OpOnBig(x, big.NewInt(int64(3)), EXP), OpOnBig(a, x, MUL), ADD), b, ADD)
-	return lhs.Cmp(rhs) == 0
+	lhs := OpOnBig(y, nil, big.NewInt(int64(2)), EXP)
+	x3 := OpOnBig(x, nil, big.NewInt(int64(3)), EXP)
+	ax := OpOnBig(a, x, nil, MUL)
+	rhs := OpOnBig(OpOnBig(x3, ax, nil, ADD), b, nil, ADD)
+	return lhs.Equal(rhs)
 }
 
 func (p *Point) Equal(other *Point) bool {
-	return p.a.Cmp(other.a) == 0 && p.x.Cmp(other.x) == 0 && p.b.Cmp(other.b) == 0 && p.y.Cmp(other.y) == 0
+	return p.a.Equal(other.a) && p.x.Equal(other.x) && p.b.Equal(other.b) && p.y.Equal(other.y)
 }
 
 func (p *Point) Add(other *Point) (*Point, error) {
-	if p.a.Cmp(other.a) != 0 || p.b.Cmp(other.b) != 0 {
+	if !p.a.Equal(other.a) || !p.b.Equal(other.b) {
 		return nil, InvalidPoint
 	}
 
@@ -88,34 +107,38 @@ func (p *Point) Add(other *Point) (*Point, error) {
 	}
 
 	// CASE: vertical line
-	if p.x.Cmp(other.x) == 0 && p.y.Cmp(other.y) != 0 {
+	if p.x.Equal(other.x) && !p.y.Equal(other.y) {
 		return &Point{a: p.a, b: p.b, x: nil, y: nil}, nil
 	}
 
 	// CASE: vertical line at tip
-	if p.x.Cmp(other.x) == 0 && p.y.Cmp(other.y) == 0 && p.y.Cmp(big.NewInt(int64(0))) == 0 {
+	zero := NewFieldElement(big.NewInt(int64(0)), p.x.prime)
+	if p.x.Equal(other.x) && p.y.Equal(other.y) && p.y.Equal(zero) {
 		return &Point{a: p.a, b: p.b, x: nil, y: nil}, nil
 	}
 
-	var s *big.Int // slope
+	var s *FieldElement // slope
 	// CASE: x1 != x2
 	// CASE: x1 == x2 and also y1 == y2
-	if p.x.Cmp(other.x) != 0 {
+	if !p.x.Equal(other.x) {
 		// slope = (y_2 - y_1)/(x_2 - x_1)
-		num := OpOnBig(other.y, p.y, SUB)
-		den := OpOnBig(other.x, p.x, SUB)
-		s = OpOnBig(num, den, DIV)
+		num := OpOnBig(other.y, p.y, nil, SUB)
+		den := OpOnBig(other.x, p.x, nil, SUB)
+		s = OpOnBig(num, den, nil, DIV)
 	} else {
 		// slope = (3 * x * x + a)/(2 * y)
-		num := OpOnBig(OpOnBig(big.NewInt(int64(3)), OpOnBig(p.x, big.NewInt(int64(2)), EXP), MUL), p.a, ADD)
-		den := OpOnBig(big.NewInt(int64(2)), p.y, MUL)
-		s = OpOnBig(num, den, DIV)
+		x2 := OpOnBig(p.x, nil, big.NewInt(int64(2)), EXP)
+		num := OpOnBig(OpOnBig(x2, nil, big.NewInt(int64(3)), MUL), p.a, nil, ADD)
+		den := OpOnBig(p.y, nil, big.NewInt(int64(2)), MUL)
+		s = OpOnBig(num, den, nil, DIV)
 	}
 
+	fmt.Println("Slope: ", s)
 	// x_3 = s^2 - x_1 - x_2
 	// y_3 = s*(x_1 - x_3) - y_1
-	x_3 := OpOnBig(OpOnBig(OpOnBig(s, big.NewInt(int64(2)), EXP), p.x, SUB), other.x, SUB)
-	y_3 := OpOnBig(OpOnBig(OpOnBig(p.x, x_3, SUB), s, MUL), p.y, SUB)
+	s2 := OpOnBig(s, nil, big.NewInt(int64(2)), EXP)
+	x_3 := OpOnBig(OpOnBig(s2, p.x, nil, SUB), other.x, nil, SUB)
+	y_3 := OpOnBig(OpOnBig(OpOnBig(p.x, x_3, nil, SUB), s, nil, MUL), p.y, nil, SUB)
 
 	return &Point{x: x_3, y: y_3, a: p.a, b: p.b}, nil
 }

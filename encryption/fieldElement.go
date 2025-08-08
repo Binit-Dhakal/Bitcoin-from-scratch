@@ -86,6 +86,13 @@ func (f *FieldElement) Exponent(power *big.Int) (*FieldElement, error) {
 	return NewFieldElement(res, f.prime), nil
 }
 
+func (f *FieldElement) ScalarMul(val *big.Int) (*FieldElement, error) {
+	var op big.Int
+	res := op.Mul(f.num, val)
+	res = op.Mod(res, f.prime)
+	return NewFieldElement(res, f.prime), nil
+}
+
 func (f *FieldElement) Division(other *FieldElement) (*FieldElement, error) {
 	if !f.CheckOrder(other) {
 		return nil, ErrOpInDifferentField
