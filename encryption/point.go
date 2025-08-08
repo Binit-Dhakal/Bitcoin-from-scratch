@@ -58,7 +58,19 @@ func (p *Point) Equal(other *Point) bool {
 }
 
 func (p *Point) GetCoordinates() (*big.Int, *big.Int) {
-	return p.x.num, p.y.num
+	var x *big.Int
+	var y *big.Int
+	if p.x == nil {
+		x = nil
+	} else {
+		x = p.x.num
+	}
+	if p.y == nil {
+		y = nil
+	} else {
+		y = p.y.num
+	}
+	return x, y
 }
 
 func (p *Point) Copy() *Point {

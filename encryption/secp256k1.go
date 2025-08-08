@@ -54,17 +54,18 @@ func (s *Secp256k1) NewFieldElement(num *big.Int) *FieldElement {
 func (s *Secp256k1) NewPoint(x *big.Int, y *big.Int) (*Point, error) {
 	feX := s.NewFieldElement(x)
 	feY := s.NewFieldElement(y)
-	if x != nil {
-		p, err := NewPoint(s.a, s.b, feX, feY)
-		if err != nil {
-			return nil, err
-		}
-
-		return p, nil
-	}
 
 	// in case of identity point
-	return NewPoint(s.a, s.b, nil, nil)
+	if x == nil {
+		return NewPoint(s.a, s.b, nil, nil)
+	}
+
+	p, err := NewPoint(s.a, s.b, feX, feY)
+	if err != nil {
+		return nil, err
+	}
+
+	return p, nil
 }
 
 func (s *Secp256k1) ScalarMul(point *Point, scalar *big.Int) (*Point, error) {
