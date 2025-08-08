@@ -8,6 +8,32 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestPointADDDifferentOrder(t *testing.T) {
+	a := big.NewInt(5)
+	b := big.NewInt(7)
+	x := big.NewInt(-1)
+	y := big.NewInt(-1)
+	p1 := big.NewInt(227)
+	p2 := big.NewInt(223)
+	point1, err := NewPoint(
+		NewFieldElement(a, p1),
+		NewFieldElement(b, p1),
+		NewFieldElement(x, p1),
+		NewFieldElement(y, p1),
+	)
+	require.NoError(t, err)
+	point2, err := NewPoint(
+		NewFieldElement(a, p2),
+		NewFieldElement(b, p2),
+		NewFieldElement(x, p2),
+		NewFieldElement(y, p2),
+	)
+	require.NoError(t, err)
+
+	_, err = point1.Add(point2)
+	require.Error(t, err)
+}
+
 func TestPointADD(t *testing.T) {
 	testCases := []struct {
 		name       string

@@ -34,21 +34,17 @@ func TestFieldElementOperations(t *testing.T) {
 	}{
 		{"less than p after add", "ADD", [2]int{4, 19}, [2]int{10, 19}, [2]int{14, 19}, nil},
 		{"more than p after add", "ADD", [2]int{14, 19}, [2]int{10, 19}, [2]int{5, 19}, nil},
-		{"different order", "ADD", [2]int{14, 19}, [2]int{14, 15}, [2]int{0, 0}, ErrOpInDifferentField},
 
 		{"positive after sub", "SUB", [2]int{14, 19}, [2]int{10, 19}, [2]int{4, 19}, nil},
 		{"negative after sub", "SUB", [2]int{10, 19}, [2]int{14, 19}, [2]int{15, 19}, nil},
-		{"order different", "SUB", [2]int{14, 19}, [2]int{14, 15}, [2]int{0, 0}, ErrOpInDifferentField},
 
 		{"normal multiplication", "MUL", [2]int{3, 13}, [2]int{12, 13}, [2]int{10, 13}, nil},
-		{"different order", "MUL", [2]int{3, 13}, [2]int{3, 10}, [2]int{0, 0}, ErrOpInDifferentField},
 
 		// fe2 first parameter is the exponent value
 		{"normal exponentation", "EXP", [2]int{3, 13}, [2]int{3, 0}, [2]int{1, 13}, nil},
 		{"negative power", "EXP", [2]int{3, 13}, [2]int{-16, 0}, [2]int{9, 13}, nil},
 
 		{"division", "DIV", [2]int{2, 19}, [2]int{7, 19}, [2]int{3, 19}, nil},
-		{"different order", "DIV", [2]int{2, 19}, [2]int{7, 10}, [2]int{0, 0}, ErrOpInDifferentField},
 	}
 
 	for _, test := range testCases {
@@ -65,15 +61,15 @@ func TestFieldElementOperations(t *testing.T) {
 
 			switch test.op {
 			case "ADD":
-				res, err = fe1.Add(fe2)
+				res = fe1.Add(fe2)
 			case "SUB":
-				res, err = fe1.Sub(fe2)
+				res = fe1.Sub(fe2)
 			case "MUL":
-				res, err = fe1.Mul(fe2)
+				res = fe1.Mul(fe2)
 			case "EXP":
-				res, err = fe1.Exponent(big.NewInt(int64(test.fe2[0])))
+				res = fe1.Exponent(big.NewInt(int64(test.fe2[0])))
 			case "DIV":
-				res, err = fe1.Division(fe2)
+				res = fe1.Division(fe2)
 			}
 
 			if err != test.err {

@@ -51,67 +51,51 @@ func (f *FieldElement) CheckOrder(other *FieldElement) bool {
 	return true
 }
 
-func (f *FieldElement) Add(other *FieldElement) (*FieldElement, error) {
-	if !f.CheckOrder(other) {
-		return nil, ErrOpInDifferentField
-	}
-
+func (f *FieldElement) Add(other *FieldElement) *FieldElement {
 	var op big.Int
 	res := op.Mod(op.Add(f.num, other.num), f.prime)
 
-	return NewFieldElement(res, f.prime), nil
+	return NewFieldElement(res, f.prime)
 }
 
-func (f *FieldElement) Sub(other *FieldElement) (*FieldElement, error) {
-	if !f.CheckOrder(other) {
-		return nil, ErrOpInDifferentField
-	}
-
+func (f *FieldElement) Sub(other *FieldElement) *FieldElement {
 	var op big.Int
 	res := op.Mod(op.Sub(f.num, other.num), f.prime)
 
-	return NewFieldElement(res, f.prime), nil
+	return NewFieldElement(res, f.prime)
 }
 
-func (f *FieldElement) Mul(other *FieldElement) (*FieldElement, error) {
-	if !f.CheckOrder(other) {
-		return nil, ErrOpInDifferentField
-	}
-
+func (f *FieldElement) Mul(other *FieldElement) *FieldElement {
 	var op big.Int
 	res := op.Mod(op.Mul(f.num, other.num), f.prime)
 
-	return NewFieldElement(res, f.prime), nil
+	return NewFieldElement(res, f.prime)
 }
 
-func (f *FieldElement) Exponent(power *big.Int) (*FieldElement, error) {
+func (f *FieldElement) Exponent(power *big.Int) *FieldElement {
 	var op big.Int
 	op.Mod(power, op.Sub(f.prime, big.NewInt(int64(1))))
 
 	res := op.Exp(f.num, &op, f.prime)
 
-	return NewFieldElement(res, f.prime), nil
+	return NewFieldElement(res, f.prime)
 }
 
-func (f *FieldElement) ScalarMul(val *big.Int) (*FieldElement, error) {
+func (f *FieldElement) ScalarMul(val *big.Int) *FieldElement {
 	var op big.Int
 	res := op.Mul(f.num, val)
 	res = op.Mod(res, f.prime)
-	return NewFieldElement(res, f.prime), nil
+	return NewFieldElement(res, f.prime)
 }
 
-func (f *FieldElement) Division(other *FieldElement) (*FieldElement, error) {
-	if !f.CheckOrder(other) {
-		return nil, ErrOpInDifferentField
-	}
-
+func (f *FieldElement) Division(other *FieldElement) *FieldElement {
 	// using Fermat's Little Theorem
 	// (a/b) = a.b^(p-2)
 	var power big.Int
 	var op big.Int
-	o, _ := other.Exponent(power.Sub(other.prime, big.NewInt(int64(2))))
+	o := other.Exponent(power.Sub(other.prime, big.NewInt(int64(2))))
 	t := op.Mul(f.num, o.num)
 	op.Mod(t, f.prime)
 
-	return NewFieldElement(&op, f.prime), nil
+	return NewFieldElement(&op, f.prime)
 }
